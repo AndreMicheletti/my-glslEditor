@@ -8,13 +8,13 @@ html {
 }
 
 #glsl_editor {
-  margin-left: 20%;
+  margin-left: min(20%, 200px);
 }
 
 #panel {
   position: fixed;
   height: 100%;
-  width: 20%;
+  width: min(20%, 200px);
   display: flex;
   flex-direction: column;
   overflow: none;

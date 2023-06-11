@@ -1,5 +1,5 @@
-// Author:
-// Title:
+// Author: AndreMicheletti
+// Title: Simple Outline
 
 #ifdef GL_ES
 precision mediump float;
