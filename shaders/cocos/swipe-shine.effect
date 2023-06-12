@@ -1,0 +1,119 @@
+// Author: AndreMicheletti
+
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: vertex
+      frag: frag
+      blendState:
+        targets:
+        - blend: true
+      rasterizerState:
+        cullMode: none
+      properties:
+        texture: { value: "white" }
+        shineTint: { value: [1, 1, 1, 1], editor: { type: "color" } }
+        shineSize: { value: 0.1 }
+        speedScale: { value: 1.5 }
+}%
+
+// Default Cocos vertex shader
+CCProgram vertex %{
+  precision highp float;
+
+  #include <cc-global>
+  #include <cc-local>
+
+  in vec3 a_position;
+  in vec4 a_color;
+  out vec4 v_color;
+
+  #if USE_TEXTURE
+  in vec2 a_uv0;
+  out vec2 v_uv0;
+  #endif
+
+  void main () {
+    vec4 pos = vec4(a_position, 1);;
+
+    #if CC_USE_MODEL
+    pos = cc_matViewProj * cc_matWorld * pos;
+    #else
+    pos = cc_matViewProj * pos;
+    #endif
+
+    #if USE_TEXTURE
+    v_uv0 = a_uv0;
+    #endif
+
+    v_color = a_color;
+
+    gl_Position = pos;
+  }
+}%
+
+
+CCProgram frag %{
+  precision highp float;
+  
+  #include <cc-global>
+  #include <texture>
+  #include <alpha-test>
+
+  in vec4 v_color;
+
+  uniform Constant{
+    vec4 shineTint;
+    float speedScale;
+    float shineSize;
+  };
+
+  #if USE_TEXTURE
+  in vec2 v_uv0;
+  uniform sampler2D texture;
+  #endif
+
+  void main () {
+    vec4 o = vec4(1.0, 1.0, 1.0, 1.0);
+
+    #if USE_TEXTURE
+      CCTexture(texture, v_uv0, o);
+    #endif
+
+    #if INVERSE
+      float anim = cos(cc_time.x * speedScale);
+    #else
+      float anim = sin(cc_time.x * speedScale);
+    #endif
+  
+    #if DIAGONAL
+      vec2 offset = vec2(0.0, anim);
+    #else
+      vec2 offset = vec2(anim, anim);
+    #endif
+    vec2 coords = v_uv0.xy + offset;
+
+    #if VERTICAL
+      float y = abs(0.5 - coords.y);
+    #elif DIAGONAL
+      #if INVERSE
+        float y = abs(coords.y - coords.x);
+      #else
+        float y = abs(1.0 - coords.y - coords.x);
+      #endif
+    #else
+      float y = abs(coords.x - 0.5);
+    #endif
+
+    float line = smoothstep(shineSize, 0.0, y);
+    vec3 color = vec3(line);
+  
+    o.r += shineTint.r * line;
+    o.g += shineTint.g * line;
+    o.b += shineTint.b * line;
+    // Alpha from source
+    o.a *= v_color.a;
+
+    gl_FragColor = o;
+  }
+}%
